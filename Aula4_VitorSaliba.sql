@@ -85,12 +85,53 @@ m        dm        cm         mm
 1m       0,1m     0,01m      0,001m
 */
 
+DELIMITER $$
+CREATE PROCEDURE Calcular_Valor_Fita(
+	OUT valor_total DOUBLE
+)
+BEGIN
+	DECLARE fita_cm DOUBLE DEFAULT 45;
+    DECLARE preco_por_metro DOUBLE DEFAULT 4.00;
+    DECLARE fita_metros DOUBLE;
+    
+    SET fita_metros = fita_cm / 100;
+    
+    SET valor_total = fita_metros * preco_por_metro;
+    
+END $$
+
+
+DELIMITER ;
+
+CALL Calcular_Valor_Fita(@valor_total);
+SELECT @valor_total AS ValorAPagar;
+
 /* Exercicio 4
  Crie uma Stored Procedure que leia um número e calcule o seu 
 quadrado, ou seja, o produto de um número por si mesmo depois 
 acrescente a esse numero a raiz quadrada de 81. Obs: deve-se 
 fazer a conta da raiz quadrada na procedure também. 
 */
+
+DELIMITER $$
+CREATE PROCEDURE Calcular_Quadrado(
+	IN num DOUBLE,
+	OUT resultado DOUBLE
+)
+
+BEGIN
+	DECLARE raiz_quadrada DOUBLE;
+    
+    SET raiz_quadrada = SQRT(81);
+    
+    SET resultado = (num * num) + raiz_quadrada;
+END $$
+
+
+DELIMITER ;
+
+CALL Calcular_Quadrado(5, @resultado);
+SELECT @resultado AS ResultadoFinal
 
 /* Exercicio 5
  No Brasil a taxa de imposto de um determinado carro é de 52%, na 
@@ -106,6 +147,18 @@ DISTRIBUIÇÃO_CUSTO 2450                     1100
 CONCESSIONÁRIA %    3.5                      1.5
 
 */
+
+DELIMITER $$
+CREATE PROCEDURE Custo_Total(OUT resultArg DOUBLE, OUT resultBra DOUBLE)
+BEGIN
+	SET resultArg = (8000 * 1.21 + 1100) * 1.015;
+    SET resultBra = (11000 * 1.52 + 2450) * 1.035;
+END $$
+
+DELIMITER ;
+
+CALL Custo_Total (@resultArg, @resultBra);
+SELECT @resultArg, @resultBra;
 
 /* Exercicio 6
 
@@ -124,3 +177,65 @@ Refrigerante................. R$ 1,00
 Milkshake..................... R$ 3,00 
 
 */
+
+DELIMITER $$
+CREATE PROCEDURE Tabela_Cardapio ()
+BEGIN
+    -- Criando a tabela Cardapio
+    CREATE TABLE IF NOT EXISTS Cardapio (
+        id_produto INT AUTO_INCREMENT PRIMARY KEY,
+        nome_produto VARCHAR(50),
+        preco_unitario DECIMAL(5, 2)
+    );
+
+    -- Inserindo valores no Cardapio (se não existir)
+    INSERT IGNORE INTO Cardapio (nome_produto, preco_unitario) VALUES
+    ('Hambúrguer', 3.00),
+    ('Cheeseburger', 2.50),
+    ('Fritas', 2.50),
+    ('Refrigerante', 1.00),
+    ('Milkshake', 3.00);
+
+    -- Criando a tabela Consumo
+    CREATE TABLE IF NOT EXISTS Consumo (
+        id_consumo INT AUTO_INCREMENT PRIMARY KEY,
+        id_cliente INT,
+        nome_cliente VARCHAR(50),
+        id_produto INT,
+        quantidade INT,
+        preco_unitario DECIMAL(5, 2),
+        total_consumido DECIMAL(7, 2)
+    );
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE PROCEDURE Inserir_Consumo_Cliente(
+    IN p_id_cliente INT, 
+    IN p_nome_cliente VARCHAR(50),
+    IN p_id_produto INT,
+    IN p_quantidade INT
+)
+BEGIN
+    DECLARE v_preco_unitario DECIMAL(5, 2);
+    DECLARE v_total_consumido DECIMAL(7, 2);
+
+    -- Obter o preço unitário do produto a partir do Cardápio
+    SELECT preco_unitario INTO v_preco_unitario 
+    FROM Cardapio 
+    WHERE id_produto = p_id_produto;
+
+    -- Calcular o total consumido
+    SET v_total_consumido = v_preco_unitario * p_quantidade;
+
+    -- Inserir o consumo do cliente na tabela Consumo
+    INSERT INTO Consumo (id_cliente, nome_cliente, id_produto, quantidade, preco_unitario, total_consumido)
+    VALUES (p_id_cliente, p_nome_cliente, p_id_produto, p_quantidade, v_preco_unitario, v_total_consumido);
+    
+    -- Exibir mensagem de sucesso
+    SELECT CONCAT('Consumo registrado: ', p_nome_cliente, ' consumiu ', p_quantidade, ' unidades de produto com ID ', p_id_produto, '. Total: R$ ', v_total_consumido) AS mensagem;
+END $$
+DELIMITER ;
+
+CALL Inserir_Consumo_Cliente(1, 'João', 4, 2);
+SELECT * FROM Consumo;
