@@ -179,63 +179,51 @@ Milkshake..................... R$ 3,00
 */
 
 DELIMITER $$
-CREATE PROCEDURE Tabela_Cardapio ()
+CREATE PROCEDURE SP_EX06_01()
 BEGIN
-    -- Criando a tabela Cardapio
-    CREATE TABLE IF NOT EXISTS Cardapio (
-        id_produto INT AUTO_INCREMENT PRIMARY KEY,
-        nome_produto VARCHAR(50),
-        preco_unitario DECIMAL(5, 2)
+    CREATE TABLE IF NOT EXISTS cardapio (
+		idCardapio INT AUTO_INCREMENT PRIMARY KEY,
+        descricao VARCHAR(60) NOT NULL,
+        preco DOUBLE NOT NULL
     );
-
-    -- Inserindo valores no Cardapio (se não existir)
-    INSERT IGNORE INTO Cardapio (nome_produto, preco_unitario) VALUES
-    ('Hambúrguer', 3.00),
-    ('Cheeseburger', 2.50),
-    ('Fritas', 2.50),
-    ('Refrigerante', 1.00),
-    ('Milkshake', 3.00);
-
-    -- Criando a tabela Consumo
-    CREATE TABLE IF NOT EXISTS Consumo (
-        id_consumo INT AUTO_INCREMENT PRIMARY KEY,
-        id_cliente INT,
-        nome_cliente VARCHAR(50),
-        id_produto INT,
-        quantidade INT,
-        preco_unitario DECIMAL(5, 2),
-        total_consumido DECIMAL(7, 2)
+    
+    INSERT INTO cardapio 
+    VALUES	(null, 'Hambúrguer', 3.0),
+			(null, 'Cheeseburger', 2.5),
+			(null, 'Fritas', 2.5),
+			(null, 'Refrigerante', 1.0),
+			(null, 'Milkshake', 3.0);
+            
+	CREATE TABLE IF NOT EXISTS consumocliente (
+		idConsumoCliente INT AUTO_INCREMENT PRIMARY KEY,
+        quantidade INT NOT NULL,
+        fk_idCardapio INT NOT NULL,
+        fk_idCliente INT NOT NULL,
+        
+        FOREIGN KEY (`fk_idCardapio`) REFERENCES `cardapio` (`idCardapio`),
+		FOREIGN KEY (`fk_idCliente`) REFERENCES `clientes` (`idCliente`)
     );
+      
+	INSERT INTO consumocliente (quantidade, fk_idCardapio, fk_idCliente) VALUES
+    (2, 1, 1),
+    (1, 3, 2),
+    (3, 4, 3),
+    (1, 5, 4),
+    (5, 2, 5);
 END$$
 DELIMITER ;
 
+CALL SP_EX06_01();
+
 DELIMITER $$
-CREATE PROCEDURE Inserir_Consumo_Cliente(
-    IN p_id_cliente INT, 
-    IN p_nome_cliente VARCHAR(50),
-    IN p_id_produto INT,
-    IN p_quantidade INT
-)
+CREATE PROCEDURE SP_EX06_02(IN var_idCliente INT, IN var_idCardapio INT)
 BEGIN
-    DECLARE v_preco_unitario DECIMAL(5, 2);
-    DECLARE v_total_consumido DECIMAL(7, 2);
-
-    -- Obter o preço unitário do produto a partir do Cardápio
-    SELECT preco_unitario INTO v_preco_unitario 
-    FROM Cardapio 
-    WHERE id_produto = p_id_produto;
-
-    -- Calcular o total consumido
-    SET v_total_consumido = v_preco_unitario * p_quantidade;
-
-    -- Inserir o consumo do cliente na tabela Consumo
-    INSERT INTO Consumo (id_cliente, nome_cliente, id_produto, quantidade, preco_unitario, total_consumido)
-    VALUES (p_id_cliente, p_nome_cliente, p_id_produto, p_quantidade, v_preco_unitario, v_total_consumido);
-    
-    -- Exibir mensagem de sucesso
-    SELECT CONCAT('Consumo registrado: ', p_nome_cliente, ' consumiu ', p_quantidade, ' unidades de produto com ID ', p_id_produto, '. Total: R$ ', v_total_consumido) AS mensagem;
-END $$
+    SELECT CLI.idCliente, CLI.nome, CON.quantidade, CAR.descricao, CAR.preco, (CAR.preco * CON.quantidade) 
+    FROM clientes AS CLI 
+    JOIN consumocliente AS CON ON CLI.idCliente = CON.fk_idCliente 
+    JOIN cardapio AS CAR ON CON.fk_idCardapio = CAR.idCardapio 
+    WHERE CLI.idCliente = var_idCliente AND CAR.idCardapio = var_idCardapio;
+END$$
 DELIMITER ;
 
-CALL Inserir_Consumo_Cliente(1, 'João', 4, 2);
-SELECT * FROM Consumo;
+CALL SP_EX06_02(1, 1);
